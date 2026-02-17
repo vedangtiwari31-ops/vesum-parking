@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VESUM - Smart Parking Access Management</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="css/vesumstyle.css">
+</head>
+<body>
+    <!-- Register Modal -->
+    <div id="registerModal" class="modal-overlay">
+        <div class="modal">
+            <button class="modal-close" onclick="closeRegisterModal()">&times;</button>
+            <div class="modal-header">
+                <h2>Create Your Account</h2>
+                <p>Join VESUM and start parking smarter</p>
+            </div>
+
+            <div class="form-group">
+                <label>Full Name</label>
+                <input type="text" id="regName" placeholder="Enter your full name">
+            </div>
+            <div class="form-group">
+                <label>Email Address</label>
+                <input type="email" id="regEmail" placeholder="your@email.com">
+            </div>
+            <div class="form-group">
+                <label>Phone Number</label>
+                <input type="tel" id="regPhone" placeholder="+91 XXXXXXXXXX">
+            </div>
+            <div class="form-group">
+                <label>Account Type</label>
+                <select id="regType">
+                    <option value="user">Public User</option>
+                    <option value="society">Society Admin</option>
+                    <option value="security">Security Personnel</option>
+                </select>
+            </div>
+            <button class="btn btn-primary" style="width: 100%;" onclick="registerUser()">Register</button>
+        </div>
+    </div>
+
+    <!-- Login Modal -->
+    <div id="loginModal" class="modal-overlay">
+        <div class="modal">
+            <button class="modal-close" onclick="closeLoginModal()">&times;</button>
+            <div class="modal-header">
+                <h2>Login to Continue</h2>
+                <p>Book parking and manage your reservations</p>
+            </div>
+
+            <div id="otpSentMessage" class="otp-sent-message">
+                ✅ OTP sent to your phone! Use <strong>1234</strong> to login (demo mode)
+            </div>
+
+            <div id="phoneStep">
+                <div class="form-group">
+                    <label>Phone Number</label>
+                    <input type="tel" id="loginPhone" placeholder="+91 XXXXXXXXXX" maxlength="13">
+                </div>
+                <button class="btn btn-primary" style="width: 100%;" onclick="sendOTP()">Send OTP</button>
+            </div>
+
+            <div id="otpStep" style="display: none;">
+                <div class="form-group">
+                    <label>Enter OTP</label>
+                    <input type="text" id="loginOTP" placeholder="Enter 4-digit OTP" maxlength="4">
+                </div>
+                <button class="btn btn-success" style="width: 100%;" onclick="verifyOTP()">Verify & Login</button>
+                <button class="btn btn-secondary" style="width: 100%; margin-top: 1rem;" onclick="backToPhone()">Back</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation -->
+    <nav>
+        <div class="nav-container">
+            <div class="nav-left">
+                <div class="logo">VESUM</div>
+                <button class="register-btn" onclick="showRegisterModal()">Register</button>
+            </div>
+            <div class="nav-center">
+                <div class="nav-tabs">
+                    <button class="nav-tab active" onclick="showPage('home')">Home</button>
+                    <button class="nav-tab" onclick="showPage('societies')">For Societies</button>
+                    <button class="nav-tab" onclick="showPage('public')">For Public Users</button>
+                    <button class="nav-tab" onclick="showPage('map')">Find Parking</button>
+                    <button class="nav-tab" onclick="showPage('security-login')">Security Login</button>
+                    <button class="nav-tab" onclick="showPage('society-login')">Society Login</button>
+                    <button class="nav-tab" onclick="showPage('admin-login')">Admin</button>
+                </div>
+            </div>
+            <div id="userProfileNav" style="display: none;">
+                <div class="user-profile" onclick="toggleUserDropdown()">
+                    <span class="user-icon">👤</span>
+                    <span id="userPhoneDisplay"></span>
+                </div>
+                <div id="userDropdown" class="user-dropdown">
+                    <div class="dropdown-item" onclick="showMyBookings()">📋 My Bookings</div>
+                    <div class="dropdown-item" onclick="logoutUser()">🚪 Logout</div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Homepage -->
+    <div id="home" class="page active">
+        <section class="hero">
+            <h1>Smart Parking Access for Societies and Cities</h1>
+            <p>VESUM helps housing societies manage parking digitally while giving the public secure, verified access to available slots.</p>
+            
+            <div class="hero-intro">
+                VESUM is a society-approved access management platform where societies control access and users get verified parking.
+            </div>
+            
+            <div class="hero-buttons">
+                <button class="btn btn-primary" onclick="showPage('societies')">I Represent a Society</button>
+                <button class="btn btn-secondary" onclick="showPage('public')">I Need Parking</button>
+                <button class="btn btn-secondary" onclick="showPage('map')">Find Parking Now</button>
+            </div>
+        </section>
+
+        <!-- Stats Section -->
+        <section class="stats-section">
+            <h2 style="color: white;">VESUM in Numbers</h2>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-number">15+</div>
+                    <div class="stat-label">Societies Onboarded</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">500+</div>
+                    <div class="stat-label">Slots Managed</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">1200+</div>
+                    <div class="stat-label">Monthly Bookings</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- How It Works -->
+        <section>
+            <h2>How VESUM Works</h2>
+            <p class="section-subtitle">Your parking solution in 4 simple steps</p>
+            <div class="steps-grid">
+                <div class="step-card">
+                    <div class="step-number">1</div>
+                    <div class="card-icon">🗺️</div>
+                    <h3>Find Parking on Map</h3>
+                    <p>Browse available parking slots in affiliated societies near you</p>
+                </div>
+                <div class="step-card">
+                    <div class="step-number">2</div>
+                    <div class="card-icon">📱</div>
+                    <h3>Book Your Slot</h3>
+                    <p>Select time duration and confirm your booking instantly</p>
+                </div>
+                <div class="step-card">
+                    <div class="step-number">3</div>
+                    <div class="card-icon">🔐</div>
+                    <h3>Get OTP</h3>
+                    <p>Receive a secure one-time password for verified access</p>
+                </div>
+                <div class="step-card">
+                    <div class="step-number">4</div>
+                    <div class="card-icon">✅</div>
+                    <h3>Watchman Verifies Entry</h3>
+                    <p>Security confirms your OTP and grants access to parking</p>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Find Parking Map Page -->
+    <div id="map" class="page">
+        <section class="hero" style="padding: 3rem 2rem;">
+            <h1>Find Parking Near You</h1>
+            <p>Browse available parking slots in affiliated societies</p>
+        </section>
+
+        <div class="map-container">
+            <div class="map-controls">
+                <button class="btn btn-primary" onclick="findNearMe()">📍 Find Parking Near Me</button>
+                <button class="btn btn-secondary" onclick="refreshMapData()">🔄 Refresh Map</button>
+            </div>
+            <div id="parkingMap"></div>
+        </div>
+
+        <!-- Booking Panel (Hidden by default) -->
+        <div id="bookingPanel" style="display: none;">
+            <div class="booking-panel">
+                <h2>Book Parking Slot</h2>
+                <div class="form-group">
+                    <label>Society Name</label>
+                    <input type="text" id="bookingSociety" readonly>
+                </div>
+                <div class="form-group">
+                    <label>Vehicle Number</label>
+                    <input type="text" id="vehicleNumber" placeholder="MH-01-AB-1234">
+                </div>
+                <div class="form-group">
+                    <label>Duration (Hours)</label>
+                    <select id="duration">
+                        <option value="1">1 Hour</option>
+                        <option value="2">2 Hours</option>
+                        <option value="3">3 Hours</option>
+                        <option value="4">4 Hours</option>
+                        <option value="6">6 Hours</option>
+                        <option value="12">12 Hours</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Select Slot</label>
+                    <select id="slotSelect">
+                        <option value="A1">Slot A1</option>
+                        <option value="A2">Slot A2</option>
+                        <option value="B1">Slot B1</option>
+                        <option value="B2">Slot B2</option>
+                    </select>
+                </div>
+                <button class="btn btn-primary" style="width: 100%;" onclick="confirmBooking()">Confirm Booking</button>
+                <button class="btn btn-secondary" style="width: 100%; margin-top: 1rem;" onclick="closeBooking()">Cancel</button>
+            </div>
+        </div>
+
+        <!-- Booking Confirmation (Hidden by default) -->
+        <div id="bookingConfirmation" style="display: none;">
+            <div class="booking-panel">
+                <h2 style="color: #28a745; text-align: center;">✅ Booking Confirmed!</h2>
+                
+                <div class="otp-display">
+                    <p>Your OTP for Entry</p>
+                    <div class="otp-code" id="otpCode">8763</div>
+                    <p>Show this to security at the gate</p>
+                </div>
+
+                <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 10px; margin: 1rem 0;">
+                    <p><strong>Booking ID:</strong> <span id="bookingId">VES-2024-0012</span></p>
+                    <p><strong>Society:</strong> <span id="confSociety"></span></p>
+                    <p><strong>Slot:</strong> <span id="confSlot"></span></p>
+                    <p><strong>Duration:</strong> <span id="confDuration"></span> hours</p>
+                    <p><strong>Vehicle:</strong> <span id="confVehicle"></span></p>
+                </div>
+
+                <button class="btn btn-primary" style="width: 100%;" onclick="closeConfirmation()">Done</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- My Bookings Page -->
+    <div id="my-bookings" class="page">
+        <section class="hero" style="padding: 3rem 2rem;">
+            <h1>My Bookings</h1>
+            <p>View and manage your parking reservations</p>
+        </section>
+
+        <div class="dashboard">
+            <div class="dashboard-card">
+                <h3>📋 Your Booking History</h3>
+                <div id="bookingHistoryContainer">
+                    <p style="text-align: center; color: #666; padding: 2rem;">No bookings yet. Book a parking slot to see it here!</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Security Login Page -->
+    <div id="security-login" class="page">
+        <div class="login-container">
+            <h2>Security Login</h2>
+            <p style="text-align: center; color: #666; margin-bottom: 2rem;">Demo Mode: Enter any credentials to login</p>
+            <form onsubmit="event.preventDefault(); loginSecurity();">
+                <div class="form-group">
+                    <label>Society ID</label>
+                    <input type="text" id="securitySocietyId" placeholder="Enter any Society ID" required>
+                </div>
+                <div class="form-group">
+                    <label>Security ID</label>
+                    <input type="text" id="securityId" placeholder="Enter any Security ID" required>
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="securityPassword" placeholder="Enter any Password" required>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Login</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Security Dashboard -->
+    <div id="security-dashboard" class="page">
+        <div class="dashboard">
+            <div class="dashboard-header">
+                <h1>Security Dashboard</h1>
+                <p>Greenwood Heights Society | Watchman: Security Guard</p>
+            </div>
+
+            <div class="dashboard-grid">
+                <!-- Verify Entry -->
+                <div class="dashboard-card">
+                    <h3>🔐 Verify Entry</h3>
+                    <div class="form-group">
+                        <label>Enter OTP</label>
+                        <input type="text" id="entryOtp" placeholder="Enter 4-digit OTP">
+                    </div>
+                    <button class="btn btn-success" style="width: 100%;" onclick="verifyEntry()">Verify & Allow Entry</button>
+                </div>
+
+                <!-- Mark Exit -->
+                <div class="dashboard-card">
+                    <h3>🚗 Mark Exit</h3>
+                    <div class="form-group">
+                        <label>Vehicle Number</label>
+                        <input type="text" id="exitVehicle" placeholder="Enter Vehicle Number">
+                    </div>
+                    <button class="btn btn-warning" style="width: 100%;" onclick="markExit()">Mark Exit</button>
+                </div>
+            </div>
+
+            <!-- Today's Bookings -->
+            <div class="dashboard-card">
+                <h3>📅 Today's Bookings</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Booking ID</th>
+                            <th>Vehicle</th>
+                            <th>Slot</th>
+                            <th>Entry Time</th>
+                            <th>Exit Time</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="securityBookingsTable">
+                        <tr>
+                            <td colspan="6" style="text-align: center; color: #666;">Loading bookings...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Society Login Page -->
+    <div id="society-login" class="page">
+        <div class="login-container">
+            <h2>Society Admin Login</h2>
+            <p style="text-align: center; color: #666; margin-bottom: 2rem;">Demo Mode: Enter any credentials to login</p>
+            <form onsubmit="event.preventDefault(); loginSociety();">
+                <div class="form-group">
+                    <label>Society ID</label>
+                    <input type="text" id="societyId" placeholder="Enter any Society ID" required>
+                </div>
+                <div class="form-group">
+                    <label>Admin Email</label>
+                    <input type="email" id="societyEmail" placeholder="Enter any Email" required>
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="societyPassword" placeholder="Enter any Password" required>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Login</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Society Dashboard -->
+    <div id="society-dashboard" class="page">
+        <div class="dashboard">
+            <div class="dashboard-header">
+                <h1>Society Admin Dashboard</h1>
+                <p>Manage your society's parking slots</p>
+            </div>
+
+            <div class="dashboard-grid">
+                <!-- Quick Stats -->
+                <div class="dashboard-card">
+                    <h3>📊 Quick Stats</h3>
+                    <div style="padding: 1rem 0;">
+                        <p><strong>Total Slots:</strong> <span id="totalSlots">0</span></p>
+                        <p><strong>Available Slots:</strong> <span id="availableSlots">0</span></p>
+                        <p><strong>Occupied Slots:</strong> <span id="occupiedSlots">0</span></p>
+                    </div>
+                </div>
+
+                <!-- Add Parking Slot -->
+                <div class="dashboard-card">
+                    <h3>➕ Add New Society to Map</h3>
+                    <div class="form-group">
+                        <label>Society Name</label>
+                        <input type="text" id="newSocietyName" placeholder="e.g., Palm Grove">
+                    </div>
+                    <div class="form-group">
+                        <label>Latitude</label>
+                        <input type="number" id="newSocietyLat" step="0.0001" placeholder="e.g., 19.0760">
+                    </div>
+                    <div class="form-group">
+                        <label>Longitude</label>
+                        <input type="number" id="newSocietyLng" step="0.0001" placeholder="e.g., 72.8777">
+                    </div>
+                    <div class="form-group">
+                        <label>Total Slots</label>
+                        <input type="number" id="newSocietySlots" placeholder="e.g., 20">
+                    </div>
+                    <div class="form-group">
+                        <label>Available Slots</label>
+                        <input type="number" id="newSocietyAvailable" placeholder="e.g., 15">
+                    </div>
+                    <div class="form-group">
+                        <label>Hourly Rate (₹)</label>
+                        <input type="number" id="newSocietyPrice" placeholder="e.g., 20">
+                    </div>
+                    <button class="btn btn-success" style="width: 100%;" onclick="addNewSociety()">Add to Map</button>
+                </div>
+            </div>
+
+            <div id="societySuccessMessage" class="success-message" style="display: none;">
+                ✅ Society added successfully! Check the map to see it live.
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Login Page -->
+    <div id="admin-login" class="page">
+        <div class="login-container">
+            <h2>Admin Panel Login</h2>
+            <p style="text-align: center; color: #666; margin-bottom: 2rem;">Demo Mode: Enter any credentials to login</p>
+            <form onsubmit="event.preventDefault(); loginAdmin();">
+                <div class="form-group">
+                    <label>Admin Email</label>
+                    <input type="email" id="adminEmail" placeholder="Enter any Email" required>
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="adminPassword" placeholder="Enter any Password" required>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Login</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main Admin Dashboard -->
+    <div id="admin-dashboard" class="page">
+        <div class="dashboard">
+            <div class="dashboard-header">
+                <h1>VESUM Super Admin Panel</h1>
+                <p>Complete Platform Control & Management</p>
+            </div>
+
+            <div class="dashboard-grid">
+                <!-- Platform Stats -->
+                <div class="dashboard-card">
+                    <h3>📊 Platform Statistics</h3>
+                    <div style="padding: 1rem 0;">
+                        <p><strong>Total Societies:</strong> <span id="adminTotalSocieties">0</span></p>
+                        <p><strong>Total Users:</strong> <span id="adminTotalUsers">0</span></p>
+                        <p><strong>Total Bookings:</strong> <span id="adminTotalBookings">0</span></p>
+                        <p><strong>Total Revenue:</strong> ₹<span id="adminRevenue">0</span></p>
+                    </div>
+                </div>
+
+                <!-- Control Actions -->
+                <div class="dashboard-card">
+                    <h3>⚙️ Platform Controls</h3>
+                    <button class="btn btn-primary" style="width: 100%; margin-bottom: 1rem;" onclick="refreshAdminData()">🔄 Refresh All Data</button>
+                    <button class="btn btn-secondary" style="width: 100%; margin-bottom: 1rem;" onclick="viewAllSocieties()">🏢 View All Societies</button>
+                    <button class="btn btn-warning" style="width: 100%;" onclick="viewAllBookings()">📋 View All Bookings</button>
+                </div>
+            </div>
+
+            <!-- All Societies Management -->
+            <div class="dashboard-card">
+                <h3>🏢 All Registered Societies</h3>
+                <div id="adminSocietiesList"></div>
+            </div>
+
+            <!-- All Bookings Management -->
+            <div class="dashboard-card">
+                <h3>📋 All Platform Bookings</h3>
+                <div id="adminBookingsList"></div>
+            </div>
+
+            <!-- Delete Society -->
+            <div class="dashboard-card">
+                <h3>🗑️ Remove Society from Platform</h3>
+                <div class="form-group">
+                    <label>Society Name to Remove</label>
+                    <input type="text" id="deleteSocietyName" placeholder="Enter exact society name">
+                </div>
+                <button class="btn btn-danger" style="width: 100%;" onclick="deleteSociety()">Remove Society</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Societies Page -->
+    <div id="societies" class="page">
+        <section class="hero">
+            <h1>Smart Parking Management for Societies</h1>
+            <p>Take control of your society's parking with digital access management</p>
+        </section>
+
+        <div class="positioning-banner">
+            VESUM is a society-approved parking access management platform where societies control access and users get verified parking.
+        </div>
+
+        <!-- Problem Section -->
+        <section>
+            <h2>The Parking Challenge</h2>
+            <p class="section-subtitle">Common problems faced by housing societies</p>
+            <div class="grid">
+                <div class="card">
+                    <div class="card-icon">🚗</div>
+                    <h3>Visitor Parking Mismanagement</h3>
+                    <p>Difficult to track and manage visitor parking slots effectively</p>
+                </div>
+                <div class="card">
+                    <div class="card-icon">📝</div>
+                    <h3>Manual Register Systems</h3>
+                    <p>Time-consuming paperwork and outdated tracking methods</p>
+                </div>
+                <div class="card">
+                    <div class="card-icon">🔒</div>
+                    <h3>Security Concerns</h3>
+                    <p>Lack of verified access control for unknown visitors</p>
+                </div>
+                <div class="card">
+                    <div class="card-icon">⏰</div>
+                    <h3>Unused Parking Slots</h3>
+                    <p>Wasted space that could generate value for residents</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- CTA Section -->
+        <section class="cta-section">
+            <h2>Ready to Transform Your Society's Parking?</h2>
+            <button class="btn btn-primary" onclick="showRegisterModal()">Register Your Society</button>
+        </section>
+    </div>
+
+    <!-- Public Users Page -->
+    <div id="public" class="page">
+        <section class="hero">
+            <h1>Find Verified Parking Near You</h1>
+            <p>Book secure parking in approved housing societies</p>
+        </section>
+
+        <div class="positioning-banner">
+            VESUM is a society-approved parking access management platform where societies control access and users get verified parking.
+        </div>
+
+        <!-- CTA Section -->
+        <section class="cta-section">
+            <h2>Stop Searching, Start Parking</h2>
+            <button class="btn btn-primary" onclick="showPage('map')">Find Parking</button>
+        </section>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-content">
+            <div class="footer-section">
+                <h3>About VESUM</h3>
+                <p>VESUM is a smart parking access management platform that connects housing societies with public users for secure, verified parking solutions.</p>
+                <p style="margin-top: 1rem;"><strong>Founder:</strong> Vedang Ramnarayan Tiwari</p>
+            </div>
+            <div class="footer-section">
+                <h3>Quick Links</h3>
+                <a href="#" onclick="showPage('societies')">For Societies</a>
+                <a href="#" onclick="showPage('public')">For Public Users</a>
+                <a href="#" onclick="showPage('map')">Find Parking</a>
+                <a href="#" onclick="showPage('home')">Home</a>
+            </div>
+            <div class="footer-section">
+                <h3>Contact Us</h3>
+                <p>Email: contact@vesum.com</p>
+                <p>Phone: +91 98765 43210</p>
+            </div>
+        </div>
+        <div class="copyright">
+            © 2026 VESUM. All rights reserved.
+        </div>
+    </footer>
+
+    <script src="js/vesum.js"></script>
+</body>
+</html>
